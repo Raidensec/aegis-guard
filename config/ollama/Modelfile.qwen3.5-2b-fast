@@ -1,0 +1,6 @@
+FROM qwen3.5:2b
+
+PARAMETER num_ctx 2048
+PARAMETER num_predict 512
+PARAMETER temperature 0.1
+PARAMETER top_p 0.9

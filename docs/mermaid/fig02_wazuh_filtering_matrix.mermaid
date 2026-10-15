@@ -1,0 +1,23 @@
+flowchart LR
+    subgraph F [Filtered Out (Level < 7)]
+        L0[Level 0]
+        L1[Level 1]
+        L2[Level 2]
+        L3[Level 3]
+        L4[Level 4]
+        L5[Level 5]
+        L6[Level 6]
+    end
+    subgraph T [AI Triage Only (Level 7)]
+        L7[Level 7]
+    end
+    subgraph TR [AI Triage + RAG (Level >= 8)]
+        L8[Level 8]
+        L9[Level 9]
+        L10[Level 10]
+        L11[Level 11]
+        L12[Level 12]
+        L13[Level 13]
+        L14[Level 14]
+        L15[Level 15]
+    end

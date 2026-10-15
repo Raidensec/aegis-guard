@@ -1,0 +1,14 @@
+sequenceDiagram
+    autonumber
+    participant Triage as Triage LLM
+    participant Orch as Response Orchestrator
+    participant Analyst as Analyst Console
+    participant Agent as EDR Adapter
+
+    Triage->>Orch: Alert triage results severity = 11 (Critical)
+    Orch->>Analyst: Raise veto warning action: Isolate Host
+    Note over Analyst: 5-minute countdown grace period starts
+    Analyst->>Orch: (Optional) Cancel/Veto action
+    Note over Orch: If no veto after 300 seconds:
+    Orch->>Agent: Commit automatic containment execution
+    Agent-->>Orch: Action success confirmation

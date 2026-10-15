@@ -1,0 +1,9 @@
+stateDiagram-v2
+    [*] --> Reconnaissance
+    Reconnaissance --> InitialAccess : p=0.65
+    InitialAccess --> LateralMovement : p=0.45
+    LateralMovement --> Exfiltration : p=0.50
+    InitialAccess --> Mitigated : p=0.30
+    LateralMovement --> Mitigated : p=0.40
+    Exfiltration --> Mitigated : p=0.75
+    Mitigated --> [*]

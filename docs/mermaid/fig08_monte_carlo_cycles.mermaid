@@ -1,0 +1,13 @@
+sequenceDiagram
+    autonumber
+    participant Attacker as Attacker Agent
+    participant Coord as Simulation Coordinator
+    participant Defender as Defender Agent
+    participant Env as Simulated Environment
+
+    Attacker->>Coord: Submit attack action (exploit)
+    Coord->>Env: Resolve vulnerability check
+    Env-->>Coord: Return outcome (Compromised/Failed)
+    Coord->>Defender: Notify of event alerts
+    Defender->>Env: Execute defensive action (block IP)
+    Env-->>Coord: Update host state map

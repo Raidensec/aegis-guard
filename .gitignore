@@ -1,0 +1,106 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments and local tooling
+/venv/
+/env/
+/ENV/
+/.venv/
+.claude/
+.agents/
+.codex/
+.aletheia/
+.serena/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Local environment values and credentials
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+credentials/
+secrets/
+.internal/
+
+# Generated TLS material
+*.key
+*.pem
+*.crt
+*.csr
+*.srl
+*.p12
+*.pfx
+config/*/certs/*
+!config/*/certs/.gitkeep
+config/root-ca/*
+!config/root-ca/.gitkeep
+config/**/*-key.*
+
+# Runtime data, logs, and local output
+/runtime/
+/outputs/
+/logs/
+*.log
+*.log.*
+*.db
+*.sqlite
+*.sqlite3
+*.sqlite-*
+/chroma_db/
+/ollama/
+.benchmarks/
+
+# Downloaded datasets and sample captures
+datasets/**/*.csv
+datasets/**/*.pcap
+datasets/**/*.json
+datasets/**/*.zip
+!datasets/README.md
+!datasets/.gitkeep
+!datasets/**/README.md
+!datasets/**/DATASET_VALIDATION_REPORT.md
+!datasets/**/*.py
+!datasets/**/*.md5
+
+# Browser captures and test artifacts
+tests/browser/screenshots/
+.pytest_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+*.ipynb
+
+# Generated documentation and OS metadata
+docs/_build/
+docs/CNAME
+/site/
+.DS_Store
+Thumbs.db
+
+# Automation workflow files are not included in this portfolio snapshot
+.github/

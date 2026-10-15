@@ -1,0 +1,22 @@
+flowchart LR
+    subgraph Master ["Simulation Master"]
+        A[Orchestrator Engine]
+    end
+    subgraph Workers ["Parallel Worker Pool"]
+        B[Worker Thread 1]
+        C[Worker Thread 2]
+        D[Worker Thread 3]
+    end
+    subgraph Runs ["Monte Carlo Swarms"]
+        E[Swarm Batch A]
+        F[Swarm Batch B]
+        G[Swarm Batch C]
+    end
+
+    A -->|Distribute Tasks| B
+    A -->|Distribute Tasks| C
+    A -->|Distribute Tasks| D
+
+    B -->|Execute| E
+    C -->|Execute| F
+    D -->|Execute| G

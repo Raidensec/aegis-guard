@@ -1,0 +1,44 @@
+<!-- OWASP Juice Shop lab target rules -->
+<group name="juice_shop,web,">
+  <rule id="100500" level="3">
+    <if_group>web,accesslog</if_group>
+    <location>juice-shop</location>
+    <description>OWASP Juice Shop access event: $(protocol) $(url) returned $(id)</description>
+    <group>juice_shop_access,web_access,</group>
+  </rule>
+
+  <rule id="100501" level="5">
+    <if_sid>100500</if_sid>
+    <match>HTTP/1.1" 4|HTTP/1.1" 5</match>
+    <description>OWASP Juice Shop HTTP error: $(protocol) $(url) returned $(id)</description>
+    <group>juice_shop_error,web_error,</group>
+  </rule>
+
+  <rule id="100502" level="7">
+    <if_sid>100501</if_sid>
+    <match>POST /rest/user/login HTTP/1.1" 401</match>
+    <description>OWASP Juice Shop failed login attempt</description>
+    <group>juice_shop_auth,authentication_failed,</group>
+  </rule>
+
+  <rule id="100503" level="8">
+    <if_sid>100500</if_sid>
+    <url>union%20|union+|select%20|select+|or%201=1|or+1=1|%27</url>
+    <description>OWASP Juice Shop SQL injection probe: $(protocol) $(url)</description>
+    <group>juice_shop_attack,sql_injection,web_attack,</group>
+  </rule>
+
+  <rule id="100504" level="8">
+    <if_sid>100500</if_sid>
+    <url>%3Cscript|%3cscript|script%3E|script%3e|onerror%3D|onerror%3d|javascript:</url>
+    <description>OWASP Juice Shop XSS probe: $(protocol) $(url)</description>
+    <group>juice_shop_attack,xss,web_attack,</group>
+  </rule>
+
+  <rule id="100505" level="8">
+    <if_sid>100500</if_sid>
+    <url>%2e%2e|%2E%2E|../..|..%2f|..%2F|%252e%252e|%252E%252E|%00|%2500</url>
+    <description>OWASP Juice Shop path traversal or poison null byte probe: $(protocol) $(url)</description>
+    <group>juice_shop_attack,path_traversal,null_byte,web_attack,</group>
+  </rule>
+</group>

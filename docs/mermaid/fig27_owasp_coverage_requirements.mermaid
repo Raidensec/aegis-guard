@@ -1,0 +1,27 @@
+requirementDiagram
+    requirement security_audit_req {
+        id: "1"
+        text: "FastAPI endpoints must be hardened against OWASP Top 10 API vulnerabilities"
+        type: functional
+    }
+    testcase test_broken_auth {
+        id: "tc_auth"
+        text: "Verify OAuth token expiration and access controls"
+    }
+    testcase test_injection {
+        id: "tc_inj"
+        text: "Verify sql and command injection sanitization inputs"
+    }
+    testcase test_ssrf {
+        id: "tc_ssrf"
+        text: "Verify webhook hook URL restriction boundaries"
+    }
+    testcase test_logging_monitoring {
+        id: "tc_log"
+        text: "Verify security alerts are triggered in Prometheus logs"
+    }
+
+    test_broken_auth - satisfies -> security_audit_req
+    test_injection - satisfies -> security_audit_req
+    test_ssrf - satisfies -> security_audit_req
+    test_logging_monitoring - satisfies -> security_audit_req

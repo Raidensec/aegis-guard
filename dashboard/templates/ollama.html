@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ollama Prompt Lab</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg-primary: #0a0e17;
+  --bg-surface: #131a2a;
+  --bg-card: #1a2332;
+  --bg-card-hover: #1f2b3d;
+  --border: #2a3a4a;
+  --border-bright: #3d5068;
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted: #6e7681;
+  --accent: #58a6ff;
+  --critical: #f85149;
+  --high: #d29922;
+  --success: #3fb950;
+  --font-mono: "JetBrains Mono", "Fira Code", Consolas, monospace;
+  --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --radius: 8px;
+  --radius-sm: 4px;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, pre, textarea, select, input { font-family: var(--font-mono); }
+
+.topbar {
+  height: 52px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(19, 26, 42, 0.95);
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 0 22px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+.brand {
+  font-family: var(--font-mono);
+  color: var(--accent);
+  font-weight: 800;
+  letter-spacing: 2px;
+  font-size: 13px;
+  padding-right: 18px;
+  border-right: 1px solid var(--border);
+}
+.toplink {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.status-pill {
+  margin-left: auto;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  border-radius: 999px;
+  padding: 5px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--high);
+}
+.status-dot.healthy { background: var(--success); }
+.status-dot.offline { background: var(--critical); }
+
+.shell {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 24px 20px 44px;
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-end;
+  margin-bottom: 18px;
+}
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+h1 {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.header-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.chip {
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(360px, 0.88fr) minmax(420px, 1.12fr);
+  gap: 16px;
+  align-items: start;
+}
+.panel {
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.panel-header {
+  min-height: 48px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+}
+.panel-title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.panel-body { padding: 14px; }
+.field { margin-bottom: 12px; }
+label {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+textarea, select, input {
+  width: 100%;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  outline: none;
+  font-size: 12px;
+}
+textarea:focus, select:focus, input:focus { border-color: var(--accent); }
+textarea {
+  min-height: 220px;
+  resize: vertical;
+  padding: 12px;
+}
+.system-textarea { min-height: 88px; }
+select, input { height: 36px; padding: 0 10px; }
+.settings-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.btn-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+button {
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  padding: 9px 13px;
+  font-weight: 650;
+  font-size: 12px;
+  cursor: pointer;
+}
+button:hover { border-color: var(--accent); color: var(--accent); }
+button:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #0a0e17;
+}
+.btn-primary:hover { color: #0a0e17; background: #79b8ff; }
+
+.output-wrap {
+  min-height: 390px;
+  max-height: 650px;
+  overflow: auto;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.output {
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding: 14px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+}
+.empty-output {
+  color: var(--text-muted);
+  min-height: 390px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px;
+}
+.meta-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.metric {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px;
+  min-width: 0;
+}
+.metric-label {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 3px;
+}
+.metric-value {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.history {
+  margin-top: 16px;
+}
+.history-list {
+  display: grid;
+  gap: 8px;
+}
+.history-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  padding: 10px;
+  cursor: pointer;
+}
+.history-item:hover { border-color: var(--accent); }
+.history-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  margin-bottom: 5px;
+}
+.history-prompt {
+  color: var(--text-secondary);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.error-box {
+  border: 1px solid rgba(248, 81, 73, 0.4);
+  background: rgba(248, 81, 73, 0.08);
+  color: #ffb4ad;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  margin-top: 12px;
+  display: none;
+}
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(10, 14, 23, 0.35);
+  border-top-color: #0a0e17;
+  border-radius: 50%;
+  display: inline-block;
+  animation: spin 0.8s linear infinite;
+  vertical-align: -2px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 980px) {
+  .grid { grid-template-columns: 1fr; }
+  .header { align-items: flex-start; flex-direction: column; }
+  .header-meta { justify-content: flex-start; }
+  .meta-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .topbar { padding: 0 14px; gap: 10px; }
+  .brand { padding-right: 10px; }
+  .shell { padding: 18px 12px 34px; }
+  .settings-row, .meta-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">AEGIS GUARD</div>
+    <a class="toplink" href="/">Command Center</a>
+    <a class="toplink" href="http://localhost:11434" target="_blank">Ollama API</a>
+    <div class="status-pill">
+      <span class="status-dot" id="ollama-status-dot"></span>
+      <span id="ollama-status-text">Checking Ollama</span>
+    </div>
+  </header>
+
+  <main class="shell">
+    <div class="header">
+      <div>
+        <div class="eyebrow">Local LLM Console</div>
+        <h1>Ollama Prompt Lab</h1>
+      </div>
+      <div class="header-meta">
+        <span class="chip" id="model-count-chip">Models: --</span>
+        <span class="chip">Endpoint: localhost:11434</span>
+      </div>
+    </div>
+
+    <div class="grid">
+      <section class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Prompt</div>
+          <button type="button" onclick="loadModels()">Refresh Models</button>
+        </div>
+        <div class="panel-body">
+          <div class="field">
+            <label for="ollama-model">Model</label>
+            <select id="ollama-model"></select>
+          </div>
+          <div class="settings-row">
+            <div class="field">
+              <label for="ollama-temperature">Temperature</label>
+              <input id="ollama-temperature" type="number" min="0" max="2" step="0.1" value="0.2">
+            </div>
+            <div class="field">
+              <label for="ollama-tokens">Max Tokens</label>
+              <input id="ollama-tokens" type="number" min="64" max="4096" step="64" value="512">
+            </div>
+          </div>
+          <div class="field">
+            <label for="ollama-system">System</label>
+            <textarea id="ollama-system" class="system-textarea">You are Aegis Guard's local SOC assistant. Answer concisely and preserve security evidence.</textarea>
+          </div>
+          <div class="field">
+            <label for="ollama-prompt">Prompt</label>
+            <textarea id="ollama-prompt">Summarize the Juice Shop Wazuh alerts for SQL injection, XSS, path traversal, and failed login. Include rule IDs and recommended analyst actions.</textarea>
+          </div>
+          <div class="btn-row">
+            <button class="btn-primary" id="generate-btn" onclick="generateOllama()">Generate</button>
+            <button onclick="clearPrompt()">Clear Prompt</button>
+            <button onclick="copyOutput()">Copy Output</button>
+          </div>
+          <div class="error-box" id="error-box"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Output</div>
+          <span class="chip" id="run-state-chip">Idle</span>
+        </div>
+        <div class="panel-body">
+          <div class="output-wrap" id="output-wrap">
+            <div class="empty-output" id="empty-output">No response yet.</div>
+            <pre class="output" id="ollama-output" style="display:none;"></pre>
+          </div>
+          <div class="meta-grid">
+            <div class="metric">
+              <div class="metric-label">Model</div>
+              <div class="metric-value" id="metric-model">--</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Duration</div>
+              <div class="metric-value" id="metric-duration">--</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Tokens</div>
+              <div class="metric-value" id="metric-tokens">--</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Status</div>
+              <div class="metric-value" id="metric-status">--</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel history">
+      <div class="panel-header">
+        <div class="panel-title">Session History</div>
+        <button type="button" onclick="clearHistory()">Clear History</button>
+      </div>
+      <div class="panel-body">
+        <div class="history-list" id="history-list">
+          <div class="empty-output" style="min-height:90px;">No runs in this session.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+<script>
+let runHistory = [];
+
+function escHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function nsToMs(ns) {
+  const value = Number(ns || 0);
+  if (!Number.isFinite(value) || value <= 0) return '--';
+  return `${Math.round(value / 1000000)} ms`;
+}
+
+async function apiFetch(url, opts = {}) {
+  try {
+    const resp = await fetch(url, opts);
+    const data = await resp.json().catch(() => ({}));
+    return { ok: resp.ok, status: resp.status, data };
+  } catch (err) {
+    return { ok: false, status: 0, data: { error: 'Request failed' } };
+  }
+}
+
+function setError(message) {
+  const box = document.getElementById('error-box');
+  if (!message) {
+    box.style.display = 'none';
+    box.textContent = '';
+    return;
+  }
+  box.textContent = message;
+  box.style.display = 'block';
+}
+
+function setStatus(status, label) {
+  const dot = document.getElementById('ollama-status-dot');
+  const text = document.getElementById('ollama-status-text');
+  dot.className = `status-dot ${status === 'healthy' ? 'healthy' : status === 'offline' ? 'offline' : ''}`;
+  text.textContent = label;
+}
+
+async function loadModels() {
+  const select = document.getElementById('ollama-model');
+  const res = await apiFetch('/api/ollama/models');
+  if (!res.ok) {
+    setStatus('offline', 'Ollama offline');
+    document.getElementById('model-count-chip').textContent = 'Models: 0';
+    select.innerHTML = '<option value="llama3.2:3b">llama3.2:3b</option>';
+    setError(res.data.error || 'Unable to load Ollama models.');
+    return;
+  }
+
+  const models = res.data.models || [];
+  setStatus('healthy', 'Ollama healthy');
+  document.getElementById('model-count-chip').textContent = `Models: ${models.length}`;
+  select.innerHTML = models.length
+    ? models.map((m) => `<option value="${escHtml(m.name)}">${escHtml(m.name)}</option>`).join('')
+    : '<option value="llama3.2:3b">llama3.2:3b</option>';
+  setError('');
+}
+
+function setGenerating(isGenerating) {
+  const btn = document.getElementById('generate-btn');
+  const chip = document.getElementById('run-state-chip');
+  btn.disabled = isGenerating;
+  btn.innerHTML = isGenerating ? '<span class="spinner"></span> Generating' : 'Generate';
+  chip.textContent = isGenerating ? 'Running' : 'Idle';
+}
+
+function updateOutput(data) {
+  const output = document.getElementById('ollama-output');
+  const empty = document.getElementById('empty-output');
+  output.textContent = data.response || '';
+  output.style.display = 'block';
+  empty.style.display = 'none';
+
+  const raw = data.raw || {};
+  document.getElementById('metric-model').textContent = data.model || raw.model || '--';
+  document.getElementById('metric-duration').textContent = nsToMs(raw.total_duration);
+  document.getElementById('metric-tokens').textContent = raw.eval_count || '--';
+  document.getElementById('metric-status').textContent = data.ok ? 'OK' : `HTTP ${data.status_code || '--'}`;
+}
+
+function addHistory(data) {
+  runHistory.unshift({
+    model: data.model,
+    prompt: data.prompt,
+    response: data.response,
+    status: data.ok ? 'OK' : `HTTP ${data.status_code || '--'}`,
+    at: new Date().toLocaleTimeString(),
+  });
+  runHistory = runHistory.slice(0, 8);
+  renderHistory();
+}
+
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  if (!runHistory.length) {
+    list.innerHTML = '<div class="empty-output" style="min-height:90px;">No runs in this session.</div>';
+    return;
+  }
+  list.innerHTML = runHistory.map((item, index) => `
+    <div class="history-item" onclick="restoreHistory(${index})">
+      <div class="history-top">
+        <span>${escHtml(item.model || '--')}</span>
+        <span>${escHtml(item.status)} - ${escHtml(item.at)}</span>
+      </div>
+      <div class="history-prompt">${escHtml(item.prompt || '')}</div>
+    </div>
+  `).join('');
+}
+
+function restoreHistory(index) {
+  const item = runHistory[index];
+  if (!item) return;
+  document.getElementById('ollama-prompt').value = item.prompt || '';
+  updateOutput({
+    model: item.model,
+    prompt: item.prompt,
+    response: item.response,
+    ok: item.status === 'OK',
+    raw: {},
+  });
+}
+
+async function generateOllama() {
+  const prompt = document.getElementById('ollama-prompt').value.trim();
+  const model = document.getElementById('ollama-model').value;
+  const system = document.getElementById('ollama-system').value.trim();
+  const temperature = Number(document.getElementById('ollama-temperature').value || 0.2);
+  const numPredict = Number(document.getElementById('ollama-tokens').value || 512);
+
+  if (!prompt) {
+    setError('Prompt is required.');
+    return;
+  }
+
+  setError('');
+  setGenerating(true);
+  const res = await apiFetch('/api/ollama/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model,
+      system,
+      prompt,
+      temperature,
+      num_predict: numPredict,
+    }),
+  });
+  setGenerating(false);
+
+  if (!res.ok) {
+    setError(res.data.error || 'Ollama request failed.');
+    document.getElementById('metric-status').textContent = `HTTP ${res.status}`;
+    return;
+  }
+
+  updateOutput(res.data);
+  addHistory(res.data);
+}
+
+function clearPrompt() {
+  document.getElementById('ollama-prompt').value = '';
+  document.getElementById('ollama-prompt').focus();
+}
+
+async function copyOutput() {
+  const text = document.getElementById('ollama-output').textContent || '';
+  if (!text) return;
+  await navigator.clipboard.writeText(text);
+  document.getElementById('run-state-chip').textContent = 'Copied';
+  setTimeout(() => { document.getElementById('run-state-chip').textContent = 'Idle'; }, 1200);
+}
+
+function clearHistory() {
+  runHistory = [];
+  renderHistory();
+}
+
+document.addEventListener('DOMContentLoaded', loadModels);
+</script>
+</body>
+</html>

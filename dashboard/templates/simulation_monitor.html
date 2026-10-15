@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulation Monitor</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg-primary: #0a0e17;
+  --bg-surface: #131a2a;
+  --bg-card: #1a2332;
+  --bg-card-hover: #1f2b3d;
+  --border: #2a3a4a;
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted: #6e7681;
+  --accent: #58a6ff;
+  --critical: #f85149;
+  --high: #d29922;
+  --success: #3fb950;
+  --font-mono: "JetBrains Mono", "Fira Code", Consolas, monospace;
+  --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --radius: 8px;
+  --radius-sm: 4px;
+}
+body {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+button, select {
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  height: 34px;
+  padding: 0 11px;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+button:hover, select:hover { border-color: var(--accent); color: var(--accent); }
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #0a0e17;
+}
+button.primary:hover { color: #0a0e17; background: #79b8ff; }
+.topbar {
+  height: 52px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(19, 26, 42, 0.96);
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 0 22px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+.brand {
+  font-family: var(--font-mono);
+  color: var(--accent);
+  font-weight: 800;
+  letter-spacing: 2px;
+  font-size: 13px;
+  padding-right: 18px;
+  border-right: 1px solid var(--border);
+}
+.toplink {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.status-pill {
+  margin-left: auto;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  border-radius: 999px;
+  padding: 5px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--high);
+}
+.dot.live { background: var(--success); }
+.dot.off { background: var(--critical); }
+.shell {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 24px 20px 44px;
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-end;
+  margin-bottom: 18px;
+}
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+h1 {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.toolbar {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.summary-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr 0.9fr 0.9fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.metric {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  min-width: 0;
+}
+.metric-label {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 5px;
+}
+.metric-value {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.stage-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 14px;
+}
+.stage-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.stage-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.stage-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.progress {
+  height: 9px;
+  border-radius: 999px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  transition: width 0.25s ease;
+}
+.two-col {
+  display: grid;
+  grid-template-columns: 0.82fr 1.18fr;
+  gap: 14px;
+  align-items: start;
+}
+.panel {
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.panel-header {
+  min-height: 46px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+}
+.panel-title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.panel-body { padding: 14px; }
+.file-list {
+  display: grid;
+  gap: 8px;
+}
+.file-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px;
+}
+.file-name {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.file-meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+.file-size {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.summary-box {
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-primary);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  max-height: 260px;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  white-space: pre-wrap;
+  color: var(--text-secondary);
+}
+.logs-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.log-panel {
+  min-width: 0;
+}
+.log-box {
+  min-height: 430px;
+  max-height: 660px;
+  overflow: auto;
+  background: #050812;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  color: #d0d7de;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.empty {
+  color: var(--text-muted);
+  font-size: 12px;
+  text-align: center;
+  padding: 20px;
+}
+.chip {
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+}
+.chip.good { color: var(--success); border-color: rgba(63,185,80,0.35); }
+.chip.warn { color: var(--high); border-color: rgba(210,153,34,0.35); }
+.chip.bad { color: var(--critical); border-color: rgba(248,81,73,0.35); }
+@media (max-width: 1100px) {
+  .summary-grid, .two-col, .logs-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 620px) {
+  .topbar { padding: 0 14px; gap: 10px; }
+  .brand { padding-right: 10px; }
+  .shell { padding: 18px 12px 34px; }
+  .header { align-items: flex-start; flex-direction: column; }
+  .toolbar { justify-content: flex-start; }
+}
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">AEGIS GUARD</div>
+    <a class="toplink" href="/">Command Center</a>
+    <a class="toplink" href="/ollama">Ollama Prompt Lab</a>
+    <a class="toplink" href="/api/logs/correlation-engine?tail=300">Raw Engine Logs</a>
+    <div class="status-pill">
+      <span class="dot live" id="live-dot"></span>
+      <span id="live-label">Live</span>
+    </div>
+  </header>
+
+  <main class="shell">
+    <div class="header">
+      <div>
+        <div class="eyebrow">Simulation Test Watch</div>
+        <h1>Simulation Monitor</h1>
+      </div>
+      <div class="toolbar">
+        <select id="interval-select" onchange="setIntervalSeconds(this.value)">
+          <option value="2">2s refresh</option>
+          <option value="5">5s refresh</option>
+          <option value="10">10s refresh</option>
+        </select>
+        <button type="button" onclick="refreshAll()">Refresh</button>
+        <button type="button" class="primary" id="pause-btn" onclick="togglePause()">Pause</button>
+      </div>
+    </div>
+
+    <div class="summary-grid">
+      <div class="metric">
+        <div class="metric-label">Latest Run</div>
+        <div class="metric-value" id="run-name">--</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Health</div>
+        <div class="metric-value" id="health-value">--</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Files</div>
+        <div class="metric-value" id="file-count">--</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Last Update</div>
+        <div class="metric-value" id="last-update">--</div>
+      </div>
+    </div>
+
+    <section class="stage-panel">
+      <div class="stage-top">
+        <div>
+          <div class="metric-label">Current Stage</div>
+          <div class="stage-name" id="stage-name">Loading</div>
+        </div>
+        <div class="stage-count" id="stage-count">--</div>
+      </div>
+      <div class="progress"><div class="progress-fill" id="progress-fill"></div></div>
+    </section>
+
+    <div class="two-col">
+      <section class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Output Files</div>
+          <span class="chip" id="run-path-chip">--</span>
+        </div>
+        <div class="panel-body">
+          <div class="file-list" id="file-list">
+            <div class="empty">Loading files...</div>
+          </div>
+          <pre class="summary-box" id="summary-box">No summary yet.</pre>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Simulation Details</div>
+          <span class="chip" id="stage-chip">--</span>
+        </div>
+        <div class="panel-body">
+          <pre class="summary-box" id="details-box" style="max-height:590px;min-height:360px;">Loading...</pre>
+        </div>
+      </section>
+    </div>
+
+    <div class="logs-grid" style="margin-top:14px;">
+      <section class="panel log-panel">
+        <div class="panel-header">
+          <div class="panel-title">Correlation Engine Logs</div>
+          <a class="chip" href="/api/logs/correlation-engine?tail=500">Open Raw</a>
+        </div>
+        <div class="panel-body">
+          <pre class="log-box" id="correlation-log">Loading...</pre>
+        </div>
+      </section>
+
+      <section class="panel log-panel">
+        <div class="panel-header">
+          <div class="panel-title">Ollama Logs</div>
+          <a class="chip" href="/api/logs/ollama?tail=500">Open Raw</a>
+        </div>
+        <div class="panel-body">
+          <pre class="log-box" id="ollama-log">Loading...</pre>
+        </div>
+      </section>
+    </div>
+  </main>
+
+<script>
+let paused = false;
+let intervalSeconds = 2;
+let timer = null;
+
+function escHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function fmtBytes(bytes) {
+  const value = Number(bytes || 0);
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+  return `${(value / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function fmtTime(value) {
+  if (!value) return '--';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleTimeString();
+}
+
+function setLiveState(isLive) {
+  document.getElementById('live-dot').className = `dot ${isLive ? 'live' : 'off'}`;
+  document.getElementById('live-label').textContent = isLive ? 'Live' : 'Paused';
+}
+
+function renderFiles(files) {
+  const list = document.getElementById('file-list');
+  if (!files || !files.length) {
+    list.innerHTML = '<div class="empty">No files yet.</div>';
+    return;
+  }
+  list.innerHTML = files.map((file) => `
+    <div class="file-row">
+      <div>
+        <div class="file-name">${escHtml(file.name)}</div>
+        <div class="file-meta">modified ${escHtml(fmtTime(file.modified))}</div>
+      </div>
+      <div class="file-size">${escHtml(fmtBytes(file.size))}</div>
+    </div>
+  `).join('');
+}
+
+function renderSummaries(summaries) {
+  const box = document.getElementById('summary-box');
+  const details = document.getElementById('details-box');
+  const summary = summaries?.['summary.json'];
+  const single = summaries?.['01-single-simulation.json'];
+  const swarmStart = summaries?.['02-swarm-start.json'];
+  const swarmHistory = summaries?.['03-swarm-status-history.json'];
+  const swarmResult = summaries?.['04-swarm-result.json'];
+
+  box.textContent = summary
+    ? JSON.stringify(summary, null, 2)
+    : JSON.stringify({
+        health: summaries?.['00-health.json'] || null,
+        single: single || null,
+        swarm_start: swarmStart || null,
+        swarm_status: swarmHistory || null,
+      }, null, 2);
+
+  details.textContent = JSON.stringify({
+    health: summaries?.['00-health.json'] || null,
+    single_simulation: single || null,
+    swarm_start: swarmStart || null,
+    swarm_status_history: swarmHistory || null,
+    swarm_result: swarmResult || null,
+    final_summary: summary || null,
+  }, null, 2);
+}
+
+function renderStage(stage) {
+  const safeStage = stage || { label: 'Unknown', step: 0, total: 6, key: 'unknown' };
+  const pct = safeStage.total ? Math.round((safeStage.step / safeStage.total) * 100) : 0;
+  document.getElementById('stage-name').textContent = safeStage.label;
+  document.getElementById('stage-count').textContent = `step ${safeStage.step}/${safeStage.total}`;
+  document.getElementById('progress-fill').style.width = `${pct}%`;
+  const chip = document.getElementById('stage-chip');
+  chip.textContent = safeStage.key;
+  chip.className = `chip ${safeStage.key === 'complete' ? 'good' : safeStage.key.includes('running') ? 'warn' : ''}`;
+}
+
+async function loadLatestRun() {
+  const res = await fetch('/api/simulation-tests/latest');
+  const data = await res.json();
+  const latest = data.latest;
+
+  document.getElementById('last-update').textContent = fmtTime(data.timestamp);
+  if (!latest) {
+    document.getElementById('run-name').textContent = '--';
+    document.getElementById('health-value').textContent = 'No runs';
+    document.getElementById('file-count').textContent = '0';
+    document.getElementById('run-path-chip').textContent = '--';
+    renderStage(null);
+    renderFiles([]);
+    return;
+  }
+
+  document.getElementById('run-name').textContent = latest.name;
+  document.getElementById('run-path-chip').textContent = latest.path;
+  document.getElementById('file-count').textContent = String(latest.files.length);
+  const health = latest.summaries?.['00-health.json'];
+  document.getElementById('health-value').textContent = health?.status
+    ? `${health.status}${health.db_connected === false ? ' db off' : ''}`
+    : '--';
+
+  renderStage(latest.stage);
+  renderFiles(latest.files);
+  renderSummaries(latest.summaries || {});
+}
+
+async function loadLog(container, targetId) {
+  const target = document.getElementById(targetId);
+  const res = await fetch(`/api/logs/${container}?tail=300`);
+  const data = await res.json();
+  target.textContent = data.logs || data.error || 'No logs.';
+  target.scrollTop = target.scrollHeight;
+}
+
+async function refreshAll() {
+  await Promise.allSettled([
+    loadLatestRun(),
+    loadLog('correlation-engine', 'correlation-log'),
+    loadLog('ollama', 'ollama-log'),
+  ]);
+}
+
+function schedule() {
+  if (timer) clearInterval(timer);
+  timer = setInterval(() => {
+    if (!paused) refreshAll();
+  }, intervalSeconds * 1000);
+}
+
+function setIntervalSeconds(value) {
+  intervalSeconds = Number(value || 2);
+  schedule();
+}
+
+function togglePause() {
+  paused = !paused;
+  document.getElementById('pause-btn').textContent = paused ? 'Resume' : 'Pause';
+  setLiveState(!paused);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  refreshAll();
+  schedule();
+});
+</script>
+</body>
+</html>

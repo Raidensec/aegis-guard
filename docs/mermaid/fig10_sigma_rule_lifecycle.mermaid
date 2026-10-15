@@ -1,0 +1,12 @@
+gantt
+    title Sigma Rule Validation & Deployment
+    dateFormat  X
+    axisFormat %d
+    section Creation
+    Rule Drafting            :active, a1, 0, 1
+    Syntax Check             :after a1, 1d
+    section Backtesting
+    Query Compilation        :c1, after a1, 2d
+    Historical Run           :after c1, 3d
+    section Deployment
+    SIEM Promotion           :after c1, 5d

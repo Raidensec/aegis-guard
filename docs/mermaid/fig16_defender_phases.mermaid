@@ -1,0 +1,6 @@
+timeline
+    title Defender Archetype Activity Timeline
+    t = 0s : SOC Analyst Agent : Receives alert webhook, triggers triage LLM
+    t = 5s : Incident Responder : Receives recommendation, starts veto grace timer
+    t = 300s : Incident Responder : Grace timer expires, triggers block IP adapter
+    t = 305s : Threat Hunter : Scraping network features, verifying baseline deviation

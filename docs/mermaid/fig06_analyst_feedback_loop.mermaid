@@ -1,0 +1,6 @@
+flowchart TB
+    A[Alert Triage Output] --> B[Analyst Review & Edit]
+    B --> C[(PostgreSQL Feedback DB)]
+    C --> D[Retraining Pipeline]
+    D --> E[Champion Model Promotion]
+    E --> A

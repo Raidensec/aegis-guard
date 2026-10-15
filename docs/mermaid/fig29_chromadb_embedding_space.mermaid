@@ -1,0 +1,9 @@
+flowchart TD
+    Doc[Text Ingestion Sources] --> Chunk[Document Chunking Engine]
+    Chunk --> Embed[Embedding Generator]
+    Embed --> Chroma[(ChromaDB Vector Store)]
+    
+    Query[Analyst Search Query] --> QEmbed[Embedding Generator]
+    QEmbed --> Search{Vector Distance Search}
+    Chroma --> Search
+    Search -->|Closest Match| Context[Enriched Context Result]

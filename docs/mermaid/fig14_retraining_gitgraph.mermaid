@@ -1,0 +1,10 @@
+gitGraph
+    commit id: "v1.0.0-release"
+    commit id: "collect-alerts"
+    branch feedback-triage
+    checkout feedback-triage
+    commit id: "analyst-labels"
+    commit id: "train-challenger"
+    checkout main
+    merge feedback-triage id: "v1.1.0-champion"
+    commit id: "ml-server-reload

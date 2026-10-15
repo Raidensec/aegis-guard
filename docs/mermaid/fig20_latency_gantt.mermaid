@@ -1,0 +1,12 @@
+gantt
+    title Webhook Latency Budget (Target: < 1.5s)
+    dateFormat  X
+    axisFormat %s
+    section Ingestion
+    Parse & Validate         :active, a1, 0, 20
+    section AI Processing
+    ML Inference Scrape      :active, a2, 20, 100
+    RAG Vector Query         :active, a3, 100, 600
+    LLM Triage Synthesis     :active, a4, 600, 1400
+    section Storage
+    PostgreSQL Logging       :active, a5, 1400, 1480

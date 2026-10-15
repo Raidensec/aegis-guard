@@ -1,0 +1,26 @@
+classDiagram
+    class ModelEvaluator {
+        +evaluateModel(dataset)
+        +comparePerformance()
+    }
+    class XGBoostModel {
+        +float accuracy = 0.998
+        +float precision = 0.989
+        +float recall = 0.991
+        +float f1 = 0.990
+    }
+    class RandomForestModel {
+        +float accuracy = 0.992
+        +float precision = 0.982
+        +float recall = 0.985
+        +float f1 = 0.983
+    }
+    class DecisionTreeModel {
+        +float accuracy = 0.975
+        +float precision = 0.960
+        +float recall = 0.965
+        +float f1 = 0.962
+    }
+    ModelEvaluator --> XGBoostModel : Champion
+    ModelEvaluator --> RandomForestModel : Challenger
+    ModelEvaluator --> DecisionTreeModel : Baseline

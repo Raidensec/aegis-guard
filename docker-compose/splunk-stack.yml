@@ -1,0 +1,66 @@
+version: '3.8'
+
+# ============================================================================
+# Splunk SIEM Integration Stack for AI-SOC
+# ============================================================================
+#
+# Adds a Splunk Enterprise container to run alongside or integrate with Wazuh.
+# Exposes Splunk Web, HEC (HTTP Event Collector), and syslog ports.
+#
+# To run this stack:
+#   docker compose -f docker-compose/splunk-stack.yml up -d
+#
+# ============================================================================
+
+services:
+  splunk:
+    image: splunk/splunk:9.2
+    container_name: splunk
+    hostname: splunk
+    restart: unless-stopped
+    environment:
+      - SPLUNK_START_ARGS=--accept-license
+      - SPLUNK_PASSWORD=${SPLUNK_PASSWORD:-CHANGE_ME_SPLUNK_PASSWORD}
+      - SPLUNK_HEC_TOKEN=${SPLUNK_HEC_TOKEN:-CHANGE_ME_SPLUNK_HEC_TOKEN}
+    ports:
+      - "8008:8000"     # Splunk Web UI (Mapped to 8008 to avoid conflicts with SOAR stack on 8000)
+      - "8089:8089"     # Management Port / Splunk REST API
+      - "8088:8088"     # Splunk HTTP Event Collector (HEC) for ingesting webhook/AI logs
+      - "9997:9997"     # Splunk Forwarder Indexer port
+      - "1516:1514/udp" # Syslog ingestion (Mapped to 1516 to avoid conflict with Wazuh manager syslog ports)
+    volumes:
+      - splunk-var:/opt/splunk/var
+      - splunk-etc:/opt/splunk/etc
+      # Mount into system/local/ — the canonical override dir, loaded by all Splunk processes.
+      # apps/search/local/ can be wiped by the image entrypoint on first boot.
+      # Verify with: docker exec splunk splunk btool inputs list --debug
+      #              docker exec splunk splunk btool indexes list --debug
+      - ../config/splunk/default.d/inputs.conf:/opt/splunk/etc/system/local/inputs.conf:ro
+      - ../config/splunk/default.d/indexes.conf:/opt/splunk/etc/system/local/indexes.conf:ro
+      # Mount datasets/logs in case you want to ingest the simulation or flow logs directly
+      - ../datasets:/var/log/datasets:ro
+    networks:
+      - siem-backend
+      - siem-frontend
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '2.0'
+        reservations:
+          memory: 2G
+          cpus: '1.0'
+
+networks:
+  siem-backend:
+    external: true
+    name: docker-compose_siem-backend
+  siem-frontend:
+    external: true
+    name: docker-compose_siem-frontend
+
+volumes:
+  splunk-var:
+    driver: local
+  splunk-etc:
+    driver: local

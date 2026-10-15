@@ -1,0 +1,15 @@
+flowchart TB
+    subgraph Entry ["Threat Initial Entry"]
+        A[Public WebServer Exploit]
+    end
+    subgraph Pivot ["Lateral Movement Hop"]
+        B[Admin Jumpbox Compromise]
+    end
+    subgraph Target ["Critical Assets"]
+        C[Production Database]
+        D[Backup Storage]
+    end
+
+    A -->|Freq: 85%| B
+    B -->|Freq: 65%| C
+    B -->|Freq: 35%| D

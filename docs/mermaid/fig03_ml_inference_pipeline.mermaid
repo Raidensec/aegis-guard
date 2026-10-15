@@ -1,0 +1,7 @@
+flowchart LR
+    A[77 Flow Features] --> B[RobustScaler]
+    B --> C{Ensemble Models}
+    C -->|Random Forest| D[Binary Classifier]
+    C -->|XGBoost| D
+    C -->|Decision Tree| D
+    D --> E[BENIGN vs ATTACK]

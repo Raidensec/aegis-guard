@@ -1,0 +1,13 @@
+flowchart TB
+    subgraph PromptCard ["Prompt Context Card"]
+        direction TB
+        A["System Prompt: Security Expert & JSON Schema Instructions"]
+        B["Alert Data Context: Source/Dest IPs, Ports, Rule Level, Logs"]
+        C["ML Guidance Context: Robust Scale Vector & Prediction Probability"]
+        D["RAG Grounding Context: MITRE Techniques, CVEs, Runbook Info"]
+        A --- B --- C --- D
+    end
+    style A fill:#1e293b,stroke:#8b5cf6,stroke-width:2px
+    style B fill:#1e293b,stroke:#3b82f6,stroke-width:2px
+    style C fill:#1e293b,stroke:#06b6d4,stroke-width:2px
+    style D fill:#1e293b,stroke:#f59e0b,stroke-width:2px

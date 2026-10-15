@@ -1,0 +1,11 @@
+stateDiagram-v2
+    state "Healthy State\n(Steady State: 65%)" as S1
+    state "Alerting State\n(Steady State: 22%)" as S2
+    state "Containment State\n(Steady State: 11%)" as S3
+    state "Compromised State\n(Steady State: 2%)" as S4
+
+    S1 --> S2 : Attack detected
+    S2 --> S3 : Trigger mitigation
+    S3 --> S1 : Recovery success
+    S2 --> S4 : Mitigation failure
+    S4 --> S3 : Emergency response

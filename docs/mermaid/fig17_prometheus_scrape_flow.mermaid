@@ -1,0 +1,20 @@
+flowchart TB
+    subgraph Targets ["Monitored Services"]
+        T1[triage-service :8100/metrics]
+        T2[rag-service :8300/metrics]
+        T3[ml-service :8500/metrics]
+        T4[correlation-engine :8600/metrics]
+        T5[feedback-service :8400/metrics]
+        T6[response-orchestrator :8800/metrics]
+    end
+    Prom[Prometheus Server :9090]
+    Graf[Grafana Dashboard :3000]
+
+    T1 -->|HTTP Scrape| Prom
+    T2 -->|HTTP Scrape| Prom
+    T3 -->|HTTP Scrape| Prom
+    T4 -->|HTTP Scrape| Prom
+    T5 -->|HTTP Scrape| Prom
+    T6 -->|HTTP Scrape| Prom
+
+    Prom -->|Query API| Graf

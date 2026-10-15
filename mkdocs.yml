@@ -1,0 +1,88 @@
+site_name: Aegis Guard Documentation
+site_author: Aegis Guard Contributors
+site_description: AI-Driven Security Operations Center documentation
+
+repo_name: Raidensec/aegis-guard
+repo_url: https://github.com/Raidensec/aegis-guard
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    # Dark mode only - no toggle
+    scheme: slate
+    primary: black
+    accent: blue
+  font:
+    text: Inter
+    code: SF Mono
+  logo: assets/logo.png
+  favicon: assets/favicon.ico
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+  icon:
+    repo: fontawesome/brands/github
+
+extra_css:
+  - stylesheets/custom.css
+
+extra_javascript:
+  - javascripts/custom.js
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Raidensec/aegis-guard
+  analytics:
+    provider: google
+    property: !ENV GOOGLE_ANALYTICS_KEY
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - md_in_html
+  - def_list
+  - footnotes
+  - tables
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+  - tags
+
+nav:
+  - Home: index.md
+  - Model Evaluation:
+      - ML Model Performance: experiments/ml-performance.md
+      - Baseline Models: experiments/baseline-models.md
+      - Training Reports: experiments/training.md
+      - Production Validation: experiments/validation.md

@@ -1,0 +1,441 @@
+services:
+  # Ollama LLM Server
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    hostname: ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    environment:
+      - OLLAMA_LLM_LIBRARY=${OLLAMA_LLM_LIBRARY:-cpu}
+      - OLLAMA_CONTEXT_LENGTH=${OLLAMA_CONTEXT_LENGTH:-1024}
+      - OLLAMA_FLASH_ATTENTION=${OLLAMA_FLASH_ATTENTION:-true}
+      - OLLAMA_KV_CACHE_TYPE=${OLLAMA_KV_CACHE_TYPE:-q4_0}
+      - OLLAMA_MAX_LOADED_MODELS=1
+      - OLLAMA_NUM_PARALLEL=1
+      - OLLAMA_KEEP_ALIVE=10m
+    networks:
+      - ai-network
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 15s
+      retries: 10
+      start_period: 120s
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+          cpus: '4.0'
+        reservations:
+          memory: 4G
+          cpus: '2.0'
+
+  # ML Inference API
+  ml-inference:
+    build:
+      context: ../ml_training
+      dockerfile: Dockerfile
+    container_name: ml-inference
+    hostname: ml-inference
+    restart: unless-stopped
+    ports:
+      - "8500:8000"
+    volumes:
+      - ../models:/app/models:ro
+    environment:
+      - MODEL_PATH=/app/models
+      - LOG_LEVEL=INFO
+    networks:
+      - ai-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+
+  # Alert Triage Service (existing)
+  alert-triage:
+    build:
+      context: ../services/alert-triage
+      dockerfile: Dockerfile
+    container_name: alert-triage
+    hostname: alert-triage
+    restart: unless-stopped
+    ports:
+      - "8100:8000"
+    environment:
+      - TRIAGE_OLLAMA_HOST=http://ollama:11434
+      - TRIAGE_PRIMARY_MODEL=${AI_SOC_OLLAMA_MODEL:-qwen3.5:2b-fast}
+      - TRIAGE_FALLBACK_MODEL=${AI_SOC_OLLAMA_MODEL:-qwen3.5:2b-fast}
+      - TRIAGE_LLM_TIMEOUT=180
+      - TRIAGE_MAX_TOKENS=512
+      - TRIAGE_ML_API_URL=http://ml-inference:8000
+      - TRIAGE_RAG_SERVICE_URL=http://rag-service:8000
+    networks:
+      - ai-network
+    depends_on:
+      ollama:
+        condition: service_healthy
+      ml-inference:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # RAG Service (existing)
+  rag-service:
+    build:
+      context: ../services/rag-service
+      dockerfile: Dockerfile
+    container_name: rag-service
+    hostname: rag-service
+    restart: unless-stopped
+    ports:
+      - "8300:8000"
+    environment:
+      - RAG_CHROMADB_HOST=chromadb
+      - RAG_CHROMADB_PORT=8000
+    networks:
+      - ai-network
+    depends_on:
+      - chromadb
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Wazuh Integration Service
+  wazuh-integration:
+    build:
+      context: ../services/wazuh-integration
+      dockerfile: Dockerfile
+    container_name: wazuh-integration
+    hostname: wazuh-integration
+    restart: unless-stopped
+    ports:
+      - "8002:8002"
+    environment:
+      - WAZUH_MANAGER_URL=https://wazuh-manager:55000
+      - WAZUH_USERNAME=wazuh-wui
+      - WAZUH_PASSWORD=${API_PASSWORD}
+      - MIN_SEVERITY=7
+      - RAG_SEVERITY_THRESHOLD=8
+      - ALERT_TRIAGE_URL=http://alert-triage:8000
+      - RAG_SERVICE_URL=http://rag-service:8000
+      - CORRELATION_ENGINE_URL=http://correlation-engine:8000
+      - INDEXER_URL=https://wazuh-indexer:9200
+      - INDEXER_USERNAME=${INDEXER_USERNAME:-admin}
+      - INDEXER_PASSWORD=${INDEXER_PASSWORD}
+      - INDEXER_VERIFY_SSL=false
+      - INDEXER_EVENTS_ENABLED=true
+      - INDEXER_EVENT_INDEX_PREFIX=ai-soc-events
+      - API_PASSWORD=${API_PASSWORD}
+      # Splunk HEC — variable names must match config.py field names (pydantic-settings uppercases them)
+      - SPLUNK_HEC_URL=${SPLUNK_HEC_URL:-http://splunk:8088/services/collector/event}
+      - SPLUNK_HEC_TOKEN=${SPLUNK_HEC_TOKEN:-CHANGE_ME_SPLUNK_HEC_TOKEN}
+      - SPLUNK_HEC_ENABLED=${SPLUNK_HEC_ENABLED:-true}
+      - SPLUNK_HEC_TIMEOUT=${SPLUNK_HEC_TIMEOUT:-5.0}
+    networks:
+      - ai-network
+      - siem-backend
+    depends_on:
+      alert-triage:
+        condition: service_healthy
+      rag-service:
+        condition: service_healthy
+      correlation-engine:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  # OWASP Juice Shop - intentionally vulnerable lab target
+  juice-shop:
+    image: bkimminich/juice-shop:latest
+    container_name: ai-soc-juice-shop
+    hostname: juice-shop
+    restart: unless-stopped
+    ports:
+      - "${JUICE_SHOP_HOST_PORT:-3002}:3000"
+    environment:
+      NODE_ENV: unsafe
+      NODE_CONFIG: >-
+        {"application":{"chatBot":{"llmApiUrl":"${JUICE_SHOP_LLM_API_URL:-http://ollama:11434/v1}","model":"${JUICE_SHOP_LLM_MODEL:-llama3.2:3b}"}}}
+    networks:
+      ai-network:
+        aliases:
+          - juice-shop
+          - lab-target-juice-shop
+    volumes:
+      - juice-shop-logs:/juice-shop/logs
+    healthcheck:
+      test: ["CMD", "/nodejs/bin/node", "-e", "require('http').get('http://127.0.0.1:3000', r => process.exit(r.statusCode < 500 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.50'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  # PostgreSQL - Persistent storage for alerts, feedback, incidents
+  postgres:
+    image: postgres:16-alpine
+    container_name: ai-soc-postgres
+    hostname: postgres
+    restart: unless-stopped
+    ports:
+      - "5435:5432"
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-aisoc_metadata}
+      - POSTGRES_USER=${POSTGRES_USER:-aisoc}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-CHANGE_ME_POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - ai-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aisoc}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  # Feedback Service - Alert persistence & analyst feedback
+  feedback-service:
+    build:
+      context: ../services/feedback-service
+      dockerfile: Dockerfile
+    container_name: feedback-service
+    hostname: feedback-service
+    restart: unless-stopped
+    ports:
+      - "8400:8000"
+    environment:
+      - FEEDBACK_DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-aisoc}:${POSTGRES_PASSWORD:-CHANGE_ME_POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-aisoc_metadata}
+    networks:
+      - ai-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  # Correlation Engine - Groups alerts into incidents
+  correlation-engine:
+    build:
+      context: ../services/correlation-engine
+      dockerfile: Dockerfile
+    container_name: correlation-engine
+    hostname: correlation-engine
+    restart: unless-stopped
+    ports:
+      - "8600:8000"
+    environment:
+      - CORRELATION_DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-aisoc}:${POSTGRES_PASSWORD:-CHANGE_ME_POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-aisoc_metadata}
+      - CORRELATION_SIMULATOR_OLLAMA_HOST=http://ollama:11434
+      - CORRELATION_SIMULATOR_OLLAMA_MODEL=${AI_SOC_OLLAMA_MODEL:-qwen3.5:2b-fast}
+      - CORRELATION_SIMULATOR_ENVIRONMENT_CONFIG=/app/config/default-environment.json
+      - CORRELATION_WAZUH_API_URL=https://wazuh-manager:55000
+      - CORRELATION_WAZUH_API_USERNAME=wazuh-wui
+      - CORRELATION_WAZUH_API_PASSWORD=${API_PASSWORD}
+      - CORRELATION_RESPONSE_ORCHESTRATOR_URL=http://response-orchestrator:8000
+      - CORRELATION_AUTO_DEFEND_ENABLED=${AUTO_DEFEND_ENABLED:-true}
+      - CORRELATION_AUTO_DEFEND_MIN_SEVERITY=${AUTO_DEFEND_MIN_SEVERITY:-high}
+      - CORRELATION_AUTO_DEFEND_TRIGGER_TIMEOUT_SECONDS=${AUTO_DEFEND_TRIGGER_TIMEOUT_SECONDS:-360}
+    volumes:
+      - ../config/simulation/default-environment.json:/app/config/default-environment.json:ro
+    networks:
+      - ai-network
+      - siem-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  # Rule Generator - LLM-generated Sigma detection rules
+  rule-generator:
+    build:
+      context: ../services/rule-generator
+      dockerfile: Dockerfile
+    container_name: rule-generator
+    hostname: rule-generator
+    restart: unless-stopped
+    ports:
+      - "8700:8000"
+    networks:
+      - ai-network
+    depends_on:
+      ollama:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+
+  # Response Orchestrator - Autonomous Adaptive Defense
+  response-orchestrator:
+    build:
+      context: ../services/response-orchestrator
+      dockerfile: Dockerfile
+    container_name: response-orchestrator
+    hostname: response-orchestrator
+    restart: unless-stopped
+    ports:
+      - "8800:8000"
+    environment:
+      - ORCHESTRATOR_DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-aisoc}:${POSTGRES_PASSWORD:-CHANGE_ME_POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-aisoc_metadata}
+      - ORCHESTRATOR_CORRELATION_ENGINE_URL=http://correlation-engine:8000
+      - ORCHESTRATOR_SIMULATION_URL=http://correlation-engine:8000
+      - ORCHESTRATOR_RAG_SERVICE_URL=http://rag-service:8000
+      - ORCHESTRATOR_FEEDBACK_SERVICE_URL=http://feedback-service:8000
+      - ORCHESTRATOR_RULE_GENERATOR_URL=http://rule-generator:8000
+      - ORCHESTRATOR_OLLAMA_HOST=http://ollama:11434
+      - ORCHESTRATOR_OLLAMA_MODEL=${AI_SOC_OLLAMA_MODEL:-qwen3.5:2b-fast}
+      - ORCHESTRATOR_WAZUH_API_URL=https://wazuh-manager:55000
+      - ORCHESTRATOR_WAZUH_API_USERNAME=wazuh-wui
+      - ORCHESTRATOR_WAZUH_API_PASSWORD=${API_PASSWORD}
+      - ORCHESTRATOR_INDEXER_URL=https://wazuh-indexer:9200
+      - ORCHESTRATOR_INDEXER_USERNAME=${INDEXER_USERNAME:-admin}
+      - ORCHESTRATOR_INDEXER_PASSWORD=${INDEXER_PASSWORD}
+      - ORCHESTRATOR_INDEXER_VERIFY_SSL=false
+      - ORCHESTRATOR_INDEXER_EVENTS_ENABLED=true
+      - ORCHESTRATOR_INDEXER_EVENT_INDEX_PREFIX=ai-soc-events
+      - ORCHESTRATOR_DRY_RUN_MODE=${ORCHESTRATOR_DRY_RUN:-true}
+    networks:
+      - ai-network
+      - siem-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      correlation-engine:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  # ChromaDB
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: chromadb
+    hostname: chromadb
+    restart: unless-stopped
+    ports:
+      - "8200:8000"
+    volumes:
+      - chromadb-data:/chroma/chroma
+    networks:
+      - ai-network
+    healthcheck:
+      test: ["CMD-SHELL", "bash -ec '</dev/tcp/127.0.0.1/8000'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+networks:
+  ai-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.35.0.0/24
+  siem-backend:
+    external: true
+    name: docker-compose_siem-backend
+
+volumes:
+  ollama-data:
+    driver: local
+  chromadb-data:
+    driver: local
+  postgres-data:
+    driver: local
+  juice-shop-logs:
+    name: ai-soc-juice-shop-logs
+    driver: local

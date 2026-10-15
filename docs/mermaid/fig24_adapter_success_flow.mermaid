@@ -1,0 +1,9 @@
+flowchart LR
+    Decision[Mitigation Action Plan] --> Router{Orchestration Router}
+    Router -->|Firewall Block| FW[pfSense Adapter Stub]
+    Router -->|Host Containment| EDR[CrowdStrike Adapter Stub]
+    Router -->|Session Revocation| IAM[AuthProvider Adapter Stub]
+
+    FW -->|Response Verify| Loop[Active Verification Loop]
+    EDR -->|Response Verify| Loop
+    IAM -->|Response Verify| Loop

@@ -1,0 +1,21 @@
+flowchart TB
+    subgraph Inputs ["Detection & Collection"]
+        A[Wazuh Agents] --> B[Wazuh Manager]
+    end
+    subgraph Ingest ["Ingestion Layer"]
+        B --> C[Webhook Receiver :8002]
+    end
+    subgraph Analysis ["AI Analysis Layer"]
+        C --> D[Alert Triage :8100]
+        C --> E[RAG Service :8300]
+        D <--> E
+        D --> F[ML Inference :8500]
+    end
+    subgraph Incident ["Incident Intelligence"]
+        D --> G[Correlation Engine :8600]
+        E --> G
+    end
+    subgraph Action ["Response & Defense"]
+        G --> H[Response Orchestrator :8800]
+        H --> I[Sigma Rule Gen :8700]
+    end

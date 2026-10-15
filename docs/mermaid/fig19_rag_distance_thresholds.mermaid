@@ -1,0 +1,9 @@
+flowchart LR
+    Query[Search Query] --> Dist{Cosine Distance}
+    Dist -->|d < 0.30| Rel[Highly Relevant]
+    Dist -->|0.30 <= d <= 0.38| Marg[Marginally Relevant]
+    Dist -->|d > 0.38| Discard[Discarded Context]
+
+    Rel -->|Include as Ground Truth| Prompt[LLM Triage Prompt]
+    Marg -->|Include as Optional Context| Prompt
+    Discard -->|Exclude| Prompt

@@ -1,0 +1,11 @@
+flowchart TD
+    Triage[LLM Triage Prediction] --> Validate{Analyst Verification}
+    Validate -->|Agree: True Positive| Save1[Save Label as ATTACK]
+    Validate -->|Agree: True Negative| Save2[Save Label as BENIGN]
+    Validate -->|Disagree: False Positive| Flag1[Flag as FP Noise]
+    Validate -->|Disagree: False Negative| Flag2[Flag as Critical Miss]
+
+    Save1 --> Ingest[Postgres Retraining Database]
+    Save2 --> Ingest
+    Flag1 --> Ingest
+    Flag2 --> Ingest
